@@ -12,11 +12,22 @@ function post(channel){
   channel.send({embed: content});
 }
 
-client.on('message', msg => {
-  if(msg.author.id === '227549003296800768') {
 
+const d = {
+  // users
+  u_bani: '227549003296800768',
+  // channels
+  c_tmp: '745439018002415626', // tmp @ bani
+  c_dm: '757394819764060261', // direct message
+  // servers
+  s_bani: '684502050255667230', // bani
+  s_cad: '683848441452822548', // ctrl+alt+del
+}
+
+client.on('message', msg => {
+  if(msg.author.id === d.u_bani) {
     switch(msg.channel.id) {
-      case '745439018002415626': // tmp @ bani
+      case d.c_tmp:
         switch(msg.content) {
           case 'ping':
             msg.reply('pong!');
@@ -26,10 +37,10 @@ client.on('message', msg => {
           break;
         }
       break;
-      case '757394819764060261': // DM
+      case d.c_dm:
         switch(msg.content) {
           case 'members':
-            const guild = client.guilds.get('683848441452822548') // 684502050255667230
+            const guild = client.guilds.get(d.s_bani) // 
             guild.fetchMembers().then(r => {
               r.members.array().forEach(r => {
                 let userData = `${r.user.username},${r.joinedAt.toISOString()},${r.user.createdAt.toISOString()}`;
