@@ -7,38 +7,40 @@ client.on('ready', () => {
   console.log(`Logged in as ${client.user.tag}!`);
 });
 
-function meetup(channel){
+function post(channel){
   let content = JSON.parse(fs.readFileSync('meetup.json'));
   channel.send({embed: content});
 }
 
 client.on('message', msg => {
   if(msg.author.id === '227549003296800768') {
+
     switch(msg.channel.id) {
-      case '684806033066950808': // bottest @ weureka
+      case '745439018002415626': // tmp @ bani
         switch(msg.content) {
           case 'ping':
             msg.reply('pong!');
           break;
-          case 'meetup?':
-            meetup(msg.channel);
+          case 'post':
+            post(msg.channel);
           break;
         }
       break;
-      case '683871601837735944': // events @ ctrl+alt_del
+      case '757394819764060261': // DM
         switch(msg.content) {
-          case 'meetup?':
-            meetup(msg.channel);
+          case 'members':
+            const guild = client.guilds.get('683848441452822548') // 684502050255667230
+            guild.fetchMembers().then(r => {
+              r.members.array().forEach(r => {
+                let userData = `${r.user.username},${r.joinedAt.toISOString()},${r.user.createdAt.toISOString()}`;
+                console.log(`${userData}`);
+              });
+            });
           break;
         }
       break;
     }
   }
-});
-
-client.on('guildMemberAdd', member => {
-  console.log(`${member.displayName} has joined!`);
-  // member.guild.channels.get('684061018313457739').send();
 });
 
 client.login(process.env.DISCORD_TOKEN);
