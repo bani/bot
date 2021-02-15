@@ -1,13 +1,15 @@
 {
   "color": 15158332,
-  "title": "Tech Networking Social Mixer [Toronto]",
-  "url": "https://www.meetup.com/en-AU/ctrl-alt-del/events/268694621",
-  "description": "A special evening of networking with your technology industry peers. Meet fellow programmers, web designers, network admins, entrepreneurs, and regex wizards!\n\nAttendees will have the opportunity to mingle with like minded folk that support the technology industry.",
+  "title": "Dungeon Mayhem: Monster Madness at the Labothéry",
+  "url": "https://www.meetup.com/en-AU/ctrl-alt-del/events/269182056",
+  "description": "It's time to play the best card game ever! Dungeon Mayhem is a fast-paced, Battle Royale free-for-all card game. I will provide the cards so just bring yourself and your enthusiasm! You can also make your own bubble tea at the venue!\n\n✔️ THIS EVENT FEATURES:\n - Crafting your own Delicious bubble tea\n - Card game action satisfaction\n - Free VIP gift cards from the venue\n - Exclusive bubble tea discounts!",
   "fields": [
     { "name": "When",
-      "value": "**Friday, 6 March 2020**\n6:00 pm to 9:00 pm" },
+      "value": "**Thursday, 12 March 2020**\n6:00 pm to 9:00 pm" },
     { "name": "Where",
-      "value": "**[Pizzeria Via Mercanti](https://www.google.com/maps/place/87+Elm+St,+Toronto,+ON+M5G+0A8/@43.6567086,-79.386173,17z/data=!3m1!4b1!4m5!3m4!1s0x882b34c981c8463b:0xb65250d65b31dacc!8m2!3d43.6567086!4d-79.386173)**" }
+      "value": "**[Labothéry - Bay & Gerrard](https://www.labothery.com/)**" },
+    { "name": "RSVP",
+      "value": "https://www.meetup.com/en-AU/ctrl-alt-del/events/269182056" }
   ],
   "footer": {
     "icon_url": "https://emojipedia-us.s3.dualstack.us-west-1.amazonaws.com/thumbs/240/apple/237/nerd-face_1f913.png",

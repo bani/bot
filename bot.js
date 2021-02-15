@@ -22,6 +22,7 @@ const d = {
   // servers
   s_bani: '684502050255667230', // bani
   s_cad: '683848441452822548', // ctrl+alt+del
+  s_evolvr: '364802195180224523',
 }
 
 client.on('message', msg => {
@@ -40,7 +41,7 @@ client.on('message', msg => {
       case d.c_dm:
         switch(msg.content) {
           case 'members':
-            const guild = client.guilds.get(d.s_bani) // 
+            const guild = client.guilds.get(d.s_evolvr) // 
             guild.fetchMembers().then(r => {
               r.members.array().forEach(r => {
                 let userData = `${r.user.username},${r.joinedAt.toISOString()},${r.user.createdAt.toISOString()}`;
