@@ -1,14 +1,8 @@
-# bot.py
-import os # for importing env vars for the bot to use
+import os
 import re
 from twitchio.ext import commands
-
-import os
 from dotenv import load_dotenv
-
-from selenium import webdriver
-from selenium.webdriver.common.action_chains import ActionChains
-import time
+import tsumego
 
 load_dotenv()
 
@@ -41,10 +35,10 @@ async def event_message(ctx):
     # print(f"{ctx.author.name}: {ctx.content}")
 
 @bot.command(name='play')
-async def ping(ctx):
+async def play(ctx):
     msg = ctx.message.clean_content
     m = re.search(r'play ([a-z]{2})', msg)
-    place_stone(m.group(1))
+    tsumego.place_stone(m.group(1))
     await ctx.send('tap')
 
 @bot.command(name='ping')
@@ -55,24 +49,8 @@ async def ping(ctx):
 async def ogs(ctx):
     await ctx.send('https://online-go.com/player/920382/')
 
-def fancy_click(id):
-    driver.execute_script("arguments[0].click();", driver.find_element_by_id(id))
-
-def solution_check():
-    solution_check = driver.find_element_by_id('solutionContainer')
-    if solution_check.text == 'Completed!':
-        fancy_click('loadButton')
-    elif solution_check.text == 'Wrong. Keep trying.':
-        driver.execute_script("stepBeginning()")
-
-def place_stone(coords):
-    fancy_click(coords)
-    time.sleep(2)
-    solution_check()
-
 
 if __name__ == "__main__":
-    driver = webdriver.Chrome()
-    driver.get('https://blacktoplay.com/?p=608')
+    tsumego = tsumego.Tsumego()
     bot.run()
 

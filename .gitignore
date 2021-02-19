@@ -2,6 +2,9 @@
 *.ipynb
 bot/
 
+.vscode/
+__pycache__/
+
 # Logs
 logs
 *.log
