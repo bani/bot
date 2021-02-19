@@ -1,4 +1,6 @@
 *.csv
+*.ipynb
+bot/
 
 # Logs
 logs
