@@ -2,13 +2,14 @@ from selenium import webdriver
 from selenium.webdriver.common.action_chains import ActionChains
 import time
 import re
+import rank
+
+GOOD = 1
+BAD = 0
+CONTINUE = 2
+OTHER = 3
 
 class Tsumego(object):
-
-    GOOD = 1
-    BAD = 0
-    CONTINUE = 2
-    OTHER = 3
 
     def __init__(self):
         self.driver = webdriver.Chrome()
@@ -22,14 +23,14 @@ class Tsumego(object):
         solution_check = self.driver.find_element_by_id('solutionContainer')
         if solution_check.text == 'Completed!':
             self.fancy_click('loadButton')
-            return self.GOOD
+            return GOOD
         elif solution_check.text == 'Wrong. Keep trying.':
             self.driver.execute_script("stepBeginning()")
-            return self.BAD
+            return BAD
         elif solution_check.text == 'Right, go on...':
-            return self.CONTINUE
+            return CONTINUE
         else:
-            return self.OTHER
+            return OTHER
 
     def place_stone(self, x, y, u):
         xc = x.lower()
@@ -41,19 +42,20 @@ class Tsumego(object):
         if u not in self.players:
             self.players[u] = 0
         
-        if result == self.GOOD:
+        if result == GOOD:
             self.players[u]+= 1
             p = re.search(r'p=([0-9]+)', self.driver.current_url)
             message = f"HSWP {x}{y} was correct for problem {p.group(1)}! SeemsGood"
-        elif result == self.BAD:
+        elif result == BAD:
             self.players[u]-= 1
             message = f"{x}{y}? Try again! NotLikeThis"
-        elif result == self.CONTINUE:
+        elif result == CONTINUE:
             message = f"{x}{y}? Keep going... O_o"
         else:
             message = f"{x}{y}?! WutFace"
         
         print(self.players)
+        rank.update(self.players)
         
         return message
 
