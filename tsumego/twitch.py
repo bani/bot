@@ -37,9 +37,12 @@ async def event_message(ctx):
 @bot.command(name='play')
 async def play(ctx):
     msg = ctx.message.clean_content
-    m = re.search(r'play ([a-z]{2})', msg)
-    tsumego.place_stone(m.group(1))
-    await ctx.send('tap')
+    m = re.search(r'play ([a-hA-H]{1})([0-8]{1}$)', msg)
+    y = m.group(1).lower()
+    x = chr(ord('a') - 1 + int(m.group(2)))
+
+    result = tsumego.place_stone(x+y, ctx.message.author.name)
+    await ctx.send(f"{ctx.message.author.name}: {result}")
 
 @bot.command(name='ping')
 async def ping(ctx):
