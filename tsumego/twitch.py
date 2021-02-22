@@ -32,7 +32,7 @@ async def event_message(ctx):
 
     await bot.handle_commands(ctx)
 
-    m = re.search(r'([a-hA-H]{1})([0-8]{1})', ctx.content)
+    m = re.search(r'(^[a-hA-H]{1})([0-8]{1})$', ctx.content)
     if m:
       result = tsumego.place_stone(m.group(1), m.group(2), ctx.author.name)
       await ctx.channel.send(result)
@@ -42,7 +42,7 @@ async def event_message(ctx):
 @bot.command(name='play')
 async def play(ctx):
     msg = ctx.message.clean_content
-    m = re.search(r'play ([a-hA-H]{1})([0-8]{1})', msg)
+    m = re.search(r'play ([a-iA-i]{1})([0-9]{1})', msg)
     if m:
       result = tsumego.place_stone(m.group(1), m.group(2), ctx.message.author.name)
       await ctx.send(result)

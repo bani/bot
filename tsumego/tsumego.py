@@ -3,6 +3,7 @@ from selenium.webdriver.common.action_chains import ActionChains
 import time
 import re
 import rank
+import threading
 
 GOOD = 1
 BAD = 0
@@ -19,10 +20,23 @@ class Tsumego(object):
     def fancy_click(self, id):
         self.driver.execute_script("arguments[0].click();", self.driver.find_element_by_id(id))
 
+    def load_next(self):
+        self.fancy_click('loadButton')
+        time.sleep(2)
+        for i in range(1,10):
+            for j in range (1,10):
+                id = f"{chr(ord('a') - 1 + i)}{chr(ord('a') - 1 + j)}"
+                label = f"{(chr(ord('a') - 1 + j)).upper()}{i}"
+                div = self.driver.find_elements_by_id(id)
+                if len(div) > 0:
+                    self.driver.execute_script(f"arguments[0].innerText = '{label}'", div[0])
+                    self.driver.execute_script("arguments[0].setAttribute('style', 'text-align: center; padding: 20px 15px;')", div[0])    
+
     def solution_check(self):
         solution_check = self.driver.find_element_by_id('solutionContainer')
         if solution_check.text == 'Completed!':
-            self.fancy_click('loadButton')
+            t = threading.Thread(target=self.load_next)
+            t.start()
             return GOOD
         elif solution_check.text == 'Wrong. Keep trying.':
             self.driver.execute_script("stepBeginning()")
@@ -35,7 +49,12 @@ class Tsumego(object):
     def place_stone(self, x, y, u):
         xc = x.lower()
         yc = chr(ord('a') - 1 + int(y))
-        self.fancy_click(yc+xc)
+        try:
+            self.fancy_click(yc+xc)
+        except:
+            print(f"invalid coordinates: {yc+xc}")
+            return f"{x}{y}?! WutFace"
+        
         time.sleep(1)
         result = self.solution_check()
 
@@ -58,4 +77,3 @@ class Tsumego(object):
         rank.update(self.players)
         
         return message
-
