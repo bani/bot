@@ -32,7 +32,7 @@ async def event_message(ctx):
 
     await bot.handle_commands(ctx)
 
-    m = re.search(r'(^[a-hA-H]{1})([0-8]{1})$', ctx.content)
+    m = re.search(r'(^[a-iA-I]{1})([0-9]{1})$', ctx.content)
     if m:
       result = tsumego.place_stone(m.group(1), m.group(2), ctx.author.name)
       await ctx.channel.send(result)

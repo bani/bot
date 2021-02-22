@@ -21,6 +21,7 @@ class Tsumego(object):
         self.driver.execute_script("arguments[0].click();", self.driver.find_element_by_id(id))
 
     def load_next(self):
+        time.sleep(5)
         self.fancy_click('loadButton')
         time.sleep(2)
         for i in range(1,10):
@@ -30,7 +31,7 @@ class Tsumego(object):
                 div = self.driver.find_elements_by_id(id)
                 if len(div) > 0:
                     self.driver.execute_script(f"arguments[0].innerText = '{label}'", div[0])
-                    self.driver.execute_script("arguments[0].setAttribute('style', 'text-align: center; padding: 20px 15px;')", div[0])    
+                    self.driver.execute_script("arguments[0].setAttribute('style', 'text-align: center; padding: 15px 15px; font-size: 1.2em')", div[0])    
 
     def solution_check(self):
         solution_check = self.driver.find_element_by_id('solutionContainer')
@@ -57,12 +58,14 @@ class Tsumego(object):
         
         time.sleep(1)
         result = self.solution_check()
+        last = None
 
         if u not in self.players:
             self.players[u] = 0
         
         if result == GOOD:
             self.players[u]+= 1
+            last = u
             p = re.search(r'p=([0-9]+)', self.driver.current_url)
             message = f"HSWP {x}{y} was correct for problem {p.group(1)}! SeemsGood"
         elif result == BAD:
@@ -74,6 +77,6 @@ class Tsumego(object):
             message = f"{x}{y}?! WutFace"
         
         print(self.players)
-        rank.update(self.players)
+        rank.update(self.players, last)
         
         return message
