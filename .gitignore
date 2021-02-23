@@ -1,6 +1,7 @@
 *.csv
 *.ipynb
 bot/
+points.py
 
 .vscode/
 __pycache__/

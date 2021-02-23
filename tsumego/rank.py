@@ -3,7 +3,7 @@ import threading
 import time
 
 
-W = 30 # string width
+W = 30 # name width
 
 def open_window():
     while True:
@@ -15,28 +15,30 @@ def open_window():
 
 def update(players, last):
     i = 1
-    for p in sorted(players.items(), key=lambda x: -x[1]):
-        window[i].update(f"{i}. {p[0]}".ljust(W))
+    for (k,v) in sorted(players.items(), key=lambda x: -x[1]):
+        entry = f"{i}. {k.ljust(W-10)} {str(v).rjust(3)}"
+        window[i].update(entry)
         i+=1
         if i > 5:
             break
     if last:
-        window[0].update(f"{last}".ljust(W))
+        window[0].update(f"{last} ({players[last]})".ljust(W))
+        
     window.refresh()
 
 sg.theme('DarkPurple')   # Add a touch of color
-font = {'font': 'Courier 20 bold', 'text_color': 'white'}
+font = {'font': 'Courier 16', 'text_color': 'white'}
 font2 = {'font': 'Sans-Serif 20', 'text_color': 'white'}
 # All the stuff inside your window.
-layout = [  
-            [sg.Text(''.ljust(W), key=1, **font)],
-            [sg.Text(''.ljust(W), key=2, **font)],
-            [sg.Text(''.ljust(W), key=3, **font)],
-            [sg.Text(''.ljust(W), key=4, **font)],
-            [sg.Text(''.ljust(W), key=5, **font)],
-            [sg.Text(''.ljust(W), **font)],
-            [sg.Text('Last correct answer:'.ljust(W), **font2)],
-            [sg.Text(''.ljust(W), key=0, **font2)], ]
+layout = [
+            [sg.Text(''.ljust(W+10), key=1, **font)],
+            [sg.Text(''.ljust(W+10), key=2, **font)],
+            [sg.Text(''.ljust(W+10), key=3, **font)],
+            [sg.Text(''.ljust(W+10), key=4, **font)],
+            [sg.Text(''.ljust(W+10), key=5, **font)],
+            [sg.Text(' ', **font)],
+            [sg.Text('Last correct answer:', **font2)],
+            [sg.Text(''.ljust(W+10), key=0, **font2)], ]
 
 # Create the Window
 window = sg.Window('Top Players', layout)

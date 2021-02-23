@@ -32,28 +32,33 @@ async def event_message(ctx):
 
     await bot.handle_commands(ctx)
 
-    m = re.search(r'(^[a-iA-I]{1})([0-9]{1})$', ctx.content)
+    m = re.search(r'^([a-tA-T]{1})([0-9]{1,2})$', ctx.content)
     if m:
       result = tsumego.place_stone(m.group(1), m.group(2), ctx.author.name)
       await ctx.channel.send(result)
 
-    # print(f"{ctx.author.name}: {ctx.content}")
 
-@bot.command(name='play')
-async def play(ctx):
+@bot.command(name='help')
+async def help(ctx):
+    await ctx.send("Enter the coordinates where you'd like to play in the chat (e.g. A1). If you need to enter the same coordinate twice in a row, you can switch between upper and lower case. Other available commands: !link: URL for current problem; !review: URL of last problem; !rank change the rank of the next problem.")
+
+@bot.command(name='review')
+async def review(ctx):
+    await ctx.send(tsumego.url)
+
+@bot.command(name='link')
+async def link(ctx):
+    await ctx.send(tsumego.driver.current_url)
+
+@bot.command(name='rank')
+async def rank(ctx):
     msg = ctx.message.clean_content
-    m = re.search(r'play ([a-iA-i]{1})([0-9]{1})', msg)
+    m = re.search(r'rank (.+)', msg)
     if m:
-      result = tsumego.place_stone(m.group(1), m.group(2), ctx.message.author.name)
-      await ctx.send(result)
-
-@bot.command(name='ping')
-async def ping(ctx):
-    await ctx.send('pong!')
-
-@bot.command(name='ogs')
-async def ogs(ctx):
-    await ctx.send('https://online-go.com/player/920382/')
+        if tsumego.update_rank(m.group(1)):
+            await ctx.send('Rank updated, it\'ll be used on next problem.')
+        else:
+            await ctx.send('Invalid rank. Use 5d to 20k. E.g. !rank 10k')
 
 
 if __name__ == "__main__":
