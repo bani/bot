@@ -1,8 +1,7 @@
 # bot.py
 import os # for importing env vars for the bot to use
+import re
 from twitchio.ext import commands
-
-import os
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -38,9 +37,20 @@ async def event_message(ctx):
 async def ping(ctx):
     await ctx.send('pong!')
 
+@bot.command(name='discord')
+async def discord(ctx):
+    await ctx.send('https://discord.gg/pEYYW4G')
+
 @bot.command(name='ogs')
 async def ogs(ctx):
     await ctx.send('https://online-go.com/player/920382/')
+
+@bot.command(name='so')
+async def so(ctx):
+    m = re.search(r'so @([a-zA-Z]+)', ctx.message.clean_content)
+    if m:
+        user = m.group(1)
+        await ctx.send(f'https://www.twitch.tv/{user}/about')
 
 if __name__ == "__main__":
     bot.run()
