@@ -3,6 +3,9 @@
 bot/
 points.py
 
+# Python virtual env
+env/
+
 .vscode/
 __pycache__/
 
