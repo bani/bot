@@ -3,6 +3,8 @@ import discord
 import csv
 from dotenv import load_dotenv
 import re
+import time
+from datetime import date, datetime
 import constants as id
 
 class BotClient(discord.Client):
@@ -12,6 +14,7 @@ class BotClient(discord.Client):
             re.compile('good ?night', re.IGNORECASE): '\N{LAST QUARTER MOON WITH FACE}',
             re.compile('good ?morning', re.IGNORECASE): '\N{SUN WITH FACE}',
         }
+        self.time_re = re.compile('(?P<hh>\d{1,2})(?P<mm>:\d{1,2})?[ ]?(?P<md>am|pm)', re.IGNORECASE)
 
     async def on_ready(self):
         print('Logged on as {0}!'.format(self.user))
@@ -26,10 +29,26 @@ class BotClient(discord.Client):
 
             elif message.content.startswith('$word_cloud'):
                 await self.word_cloud(message)
+
+            elif message.content.startswith('$time'):
+                await self.time_conversion(message)
         if message.channel.id in (id.EvolVR.HOME, id.Baniverse.TMP):
             for pattern, emoji in self.reactions.items():
                 if pattern.search(message.content):
                     await message.add_reaction(emoji)
+
+    async def time_conversion(self, message):
+        try:
+            m = self.time_re.search(message.content)
+            time_parts = m.groupdict()
+            today = date.today()
+            time_str = f"{today.strftime('%Y-%m-%d')} {time_parts['hh']}{time_parts['mm'] if 'mm' in time_parts and time_parts['mm'] else ':00'} {time_parts['md']}"
+            datetime_object = datetime.strptime(time_str, '%Y-%m-%d %I:%M %p')
+            unix_time = time.mktime(datetime_object.timetuple())
+            await message.author.send(f"`<t:{int(unix_time)}:t>`")
+        except:
+            print("Invalid time")
+            return         
 
     async def user_rank(self, message):
         try:
