@@ -33,6 +33,8 @@ class BotClient(discord.Client):
                     await self.send(message)
                 if message.content.startswith('$react'):
                     await self.react(message)
+                if message.content.startswith('$unreact'):
+                    await self.unreact(message)
                 elif message.content.startswith('$time'):
                     await self.time_conversion(message)
                 elif message.content.startswith('$user_rank'):
@@ -68,6 +70,15 @@ class BotClient(discord.Client):
             await (await channel.fetch_message(match[3])).add_reaction(client.get_emoji(getattr(id.Emoji, match[1])))
         except:
             await message.author.send('Format is: $react EMOJI CHANNEL message_id')
+            return
+
+    async def unreact(self, message):
+        try:
+            match = re.compile('\$unreact ([A-Z]+) ([A-Z]+) ([\d]+)').search(message.content)
+            channel = self.get_channel(getattr(id.Channel, match[2]))
+            await (await channel.fetch_message(match[3])).remove_reaction(client.get_emoji(getattr(id.Emoji, match[1])), self.user)
+        except:
+            await message.author.send('Format is: $unreact EMOJI CHANNEL message_id')
             return
 
     async def time_conversion(self, message):
