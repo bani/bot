@@ -11,8 +11,10 @@ class BotClient(discord.Client):
     def __init__(self):
         super().__init__()
         self.reactions = {
-            re.compile('good ?night', re.IGNORECASE): '\N{LAST QUARTER MOON WITH FACE}',
-            re.compile('good ?morning', re.IGNORECASE): '\N{SUN WITH FACE}',
+            re.compile('good ?night', re.IGNORECASE): id.Emoji.MOON,
+            re.compile('good ?morning', re.IGNORECASE): id.Emoji.SUN,
+            re.compile('<@!684503427782672517>'): id.Emoji.BOT,
+            re.compile('BaniBot', re.IGNORECASE): id.Emoji.BOT,
         }
         self.time_re = re.compile('(?P<hh>\d{1,2})(?P<mm>:\d{1,2})?[ ]?(?P<md>am|pm)', re.IGNORECASE)
 
@@ -29,6 +31,8 @@ class BotClient(discord.Client):
             if message.author.id == id.User.BANI:
                 if message.content.startswith('$say'):
                     await self.send(message)
+                if message.content.startswith('$react'):
+                    await self.react(message)
                 elif message.content.startswith('$time'):
                     await self.time_conversion(message)
                 elif message.content.startswith('$user_rank'):
@@ -43,7 +47,7 @@ class BotClient(discord.Client):
         if message.channel.id in (id.Channel.TMP, id.Channel.EVHOME):
             for pattern, emoji in self.reactions.items():
                 if pattern.search(message.content):
-                    await message.add_reaction(emoji)
+                    await message.add_reaction(client.get_emoji(emoji))
 
     async def send(self, message):
         try:
@@ -51,7 +55,16 @@ class BotClient(discord.Client):
             channel = self.get_channel(getattr(id.Channel, match[1]))
             await channel.send(match[2])
         except:
-            print("Invalid message")
+            await message.author.send('Format is: $say CHANNEL message')
+            return
+
+    async def react(self, message):
+        try:
+            match = re.compile('\$react ([A-Z]+) ([A-Z]+) ([\d]+)').search(message.content)
+            channel = self.get_channel(getattr(id.Channel, match[2]))
+            await (await channel.fetch_message(match[3])).add_reaction(client.get_emoji(getattr(id.Emoji, match[1])))
+        except:
+            await message.author.send('Format is: $react EMOJI CHANNEL message_id')
             return
 
     async def time_conversion(self, message):
