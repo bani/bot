@@ -13,9 +13,9 @@ class BotClient(discord.Client):
         self.reactions = {
             re.compile('good ?night', re.IGNORECASE): id.Emoji.MOON,
             re.compile('good ?morning', re.IGNORECASE): id.Emoji.SUN,
-            re.compile('<@!684503427782672517>'): id.Emoji.BOT,
             re.compile('BaniBot', re.IGNORECASE): id.Emoji.BOT,
         }
+        self.mention = re.compile('<@!684503427782672517>')
         self.time_re = re.compile('(?P<hh>\d{1,2})(?P<mm>:\d{1,2})?[ ]?(?P<md>am|pm)', re.IGNORECASE)
 
     async def on_ready(self):
@@ -47,7 +47,10 @@ class BotClient(discord.Client):
         if message.channel.id in (id.Channel.TMP, id.Channel.EVHOME):
             for pattern, emoji in self.reactions.items():
                 if pattern.search(message.content):
-                    await message.add_reaction(client.get_emoji(emoji))
+                    await message.add_reaction(self.get_emoji(emoji))
+            
+            if self.mention.search(message.content) and message.content.count('@') == 1:
+                await message.add_reaction(self.get_emoji(id.Emoji.BOT))
 
     async def send(self, message):
         try:
