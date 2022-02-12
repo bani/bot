@@ -16,7 +16,7 @@ class BotClient(discord.Client):
         }
         self.mention = re.compile('<@!684503427782672517>')
         self.banibot = re.compile('BaniBot', re.IGNORECASE)
-        self.time_re = re.compile('(?P<hh>\d{1,2})(?P<mm>:\d{1,2})?[ ]?(?P<md>am|pm)', re.IGNORECASE)
+        self.time_re = re.compile('(?P<dt>\d{4}-\d{2}-\d{2})? ?(?P<hh>\d{2})(?P<mm>:\d{2})', re.IGNORECASE)
 
     async def on_ready(self):
         print('Logged on as {0}!'.format(self.user))
@@ -41,6 +41,9 @@ class BotClient(discord.Client):
                     await self.user_rank(message)
                 elif message.content.startswith('$word_cloud'):
                     await self.word_cloud(message)
+                elif message.content.startswith('$test'):
+                    msg = await self.get_channel(id.Channel.EVHOME).fetch_message(939176779015417866)
+                    print(msg.content)
             else:
                 print('DM from {0.author}: {0.content}'.format(message))
             return
@@ -86,12 +89,13 @@ class BotClient(discord.Client):
             m = self.time_re.search(message.content)
             time_parts = m.groupdict()
             today = date.today()
-            time_str = f"{today.strftime('%Y-%m-%d')} {time_parts['hh']}{time_parts['mm'] if 'mm' in time_parts and time_parts['mm'] else ':00'} {time_parts['md']}"
-            datetime_object = datetime.strptime(time_str, '%Y-%m-%d %I:%M %p')
-            unix_time = time.mktime(datetime_object.timetuple())
-            await message.author.send(f"`<t:{int(unix_time)}:t>`")
+            iso_time = f"{time_parts['dt'] if time_parts['dt'] else today}T{time_parts['hh']}{time_parts['mm']}-05:00"
+            epoch = datetime.fromisoformat(iso_time).timestamp()
+
+            await message.author.send(f"`<t:{int(epoch)}:t>`")
         except:
             print("Invalid time")
+            raise
             return 
 
     async def user_rank(self, message):
