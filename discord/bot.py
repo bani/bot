@@ -1,10 +1,12 @@
 import os
 import discord
 import csv
-from dotenv import load_dotenv
+import requests
 import re
 import time
 from datetime import date, datetime
+from bs4 import BeautifulSoup
+from dotenv import load_dotenv
 import constants as id
 
 class BotClient(discord.Client):
@@ -50,12 +52,52 @@ class BotClient(discord.Client):
         
         # handle channel messages
         if message.channel.id in (id.Channel.TMP, id.Channel.EVHOME):
+            # BaniBot mentions
             if self.banibot.search(message.content) or (self.mention.search(message.content) and message.content.count('@') == 1):
                 await message.add_reaction(self.get_emoji(id.Emoji.BOT))
                 return
+            
+            # emoji reactions regexp
             for pattern, emoji in self.reactions.items():
                 if pattern.search(message.content):
                     await message.add_reaction(self.get_emoji(emoji))
+            
+            # Events
+            if message.content == '?altspace':
+                await self.altspace(message)
+
+
+    async def altspace(self, message):
+        page = requests.get("https://account.altvr.com/channels/meditation")
+        soup = BeautifulSoup(page.content, 'html.parser')
+        div = soup.find("div", {"id": "upcoming-events"})
+
+        events = []
+        today = datetime.today().date()
+
+        featured = div.find("a", {"class": "banner"})
+        time = featured.find("div", {"class": "banner__header-item"})
+        if 'data-unix-start-time' in time and datetime.fromtimestamp(int(time['data-unix-start-time'])).date() == today:
+            events.append( (time['data-unix-start-time'], featured.find("div", {"class": "banner__footer"}).text))
+        elif "LIVE!" in time.text:
+            events.append( ("LIVE!", featured.find("div", {"class": "banner__footer"}).text))
+            
+        tiles = div.find_all("a", {"class": "tile"})
+        for tile in tiles:
+            time = tile.find("div", {"class": "tile__header-item"})
+            if datetime.fromtimestamp(int(time['data-unix-start-time'])).date() == today:
+                events.append( (time['data-unix-start-time'], tile.find("div", {"class": "tile__footer"}).text))
+            else:
+                break
+        
+        if len(events) > 0:
+            embed=discord.Embed(title="Altspace events", url="https://account.altvr.com/channels/meditation",
+                color=0x166099, description="The following events are scheduled for today:")
+            embed.set_author(name="EvolVR", url="https://evolvr.org/", icon_url="https://cdn-content-ingress.altvr.com/uploads/channel/profile_image/983488213811200868/ProfileImageEvolVR.jpg")
+            for event in events:
+                embed.add_field(name=event[1], value="LIVE!" if event[0] == "LIVE!" else f"<t:{event[0]}:t>", inline=True)
+
+            await message.channel.send(embed=embed)
 
     async def send(self, message):
         try:
