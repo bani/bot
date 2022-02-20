@@ -77,11 +77,13 @@ class BotClient(discord.Client):
 
         featured = div.find("a", {"class": "banner"})
         time = featured.find("div", {"class": "banner__header-item"})
-        if 'data-unix-start-time' in time and datetime.fromtimestamp(int(time['data-unix-start-time'])).date() == today:
-            events.append( (time['data-unix-start-time'], featured.find("div", {"class": "banner__footer"}).text))
-        elif "LIVE!" in time.text:
+        if "LIVE!" in time.text:
             events.append( ("LIVE!", featured.find("div", {"class": "banner__footer"}).text))
-            
+        else:
+            time = featured.find("div", {"class": "banner__header-item time-info-home"})
+            if datetime.fromtimestamp(int(time['data-unix-start-time'])).date() == today:
+                events.append( (time['data-unix-start-time'], featured.find("div", {"class": "banner__footer"}).text))
+
         tiles = div.find_all("a", {"class": "tile"})
         for tile in tiles:
             time = tile.find("div", {"class": "tile__header-item"})
