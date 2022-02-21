@@ -6,6 +6,7 @@ import re
 import time
 from datetime import date, datetime
 from bs4 import BeautifulSoup
+from json import loads
 from dotenv import load_dotenv
 import constants as id
 
@@ -35,6 +36,8 @@ class BotClient(discord.Client):
                     await self.say(message)
                 if message.content.startswith('$del'):
                     await self.delete(message)
+                if message.content.startswith('$embed'):
+                    await self.embed(message)
                 if message.content.startswith('$react'):
                     await self.react(message)
                 if message.content.startswith('$unreact'):
@@ -69,76 +72,55 @@ class BotClient(discord.Client):
                 await self.altspace(message)
 
 
-    async def altspace(self, message):
-        page = requests.get("https://account.altvr.com/channels/meditation")
-        soup = BeautifulSoup(page.content, 'html.parser')
-        div = soup.find("div", {"id": "upcoming-events"})
-
-        events = []
-        today = datetime.today().date()
-
-        featured = div.find("a", {"class": "banner"})
-        time = featured.find("div", {"class": "banner__header-item"})
-        if "LIVE!" in time.text:
-            events.append( ("LIVE!", featured.find("div", {"class": "banner__footer"}).text))
-        else:
-            time = featured.find("div", {"class": "banner__header-item time-info-home"})
-            if datetime.fromtimestamp(int(time['data-unix-start-time'])).date() == today:
-                events.append( (time['data-unix-start-time'], featured.find("div", {"class": "banner__footer"}).text))
-
-        tiles = div.find_all("a", {"class": "tile"})
-        for tile in tiles:
-            time = tile.find("div", {"class": "tile__header-item"})
-            if datetime.fromtimestamp(int(time['data-unix-start-time'])).date() == today:
-                events.append( (time['data-unix-start-time'], tile.find("div", {"class": "tile__footer"}).text))
-            else:
-                break
-        
-        if len(events) > 0:
-            embed=discord.Embed(title="Altspace events today", url="https://account.altvr.com/channels/meditation",
-                color=0x166099)
-            embed.set_author(name="EvolVR", url="https://evolvr.org/", icon_url="https://cdn-content-ingress.altvr.com/uploads/channel/profile_image/983488213811200868/ProfileImageEvolVR.jpg")
-            for event in events:
-                embed.add_field(name=event[1], value="LIVE!" if event[0] == "LIVE!" else f"<t:{event[0]}:t>", inline=False)
-
-            await message.channel.send(embed=embed)
-        else:
-            time = featured.find("div", {"class": "banner__header-item time-info-home"})['data-unix-start-time']
-            title = featured.find("div", {"class": "banner__footer"}).text
-            await message.channel.send(f"No more events scheduled for today. Next event is <t:{time}:F>: {title}")
-
     async def say(self, message):
         try:
             match = re.compile('\$say ([A-Z]+) (.*)').search(message.content)
             channel = self.get_channel(getattr(id.Channel, match[1]))
             await channel.send(match[2])
-        except:
-            await message.author.send('Format is: $say CHANNEL message')
-            return
+        except Exception as e:
+            print(message.content)
+            print(e)
 
     async def delete(self, message):
-        match = re.compile('\$del ([A-Z]+) (.*)').search(message.content)
-        channel = self.get_channel(getattr(id.Channel, match[1]))
-        msg = await channel.fetch_message(int(match[2]))
-        await msg.delete()
+        try:
+            match = re.compile('\$del ([A-Z]+) (.*)').search(message.content)
+            channel = self.get_channel(getattr(id.Channel, match[1]))
+            msg = await channel.fetch_message(int(match[2]))
+            await msg.delete()
+        except Exception as e:
+            print(message.content)
+            print(e)
+
+    async def embed(self, message):
+        try:
+            match = re.compile('\$embed ([A-Z]+) (.*)', re.MULTILINE|re.DOTALL).search(message.content)
+            channel = self.get_channel(getattr(id.Channel, match[1]))
+
+            embed_json = loads(match[2])
+            embed = discord.Embed().from_dict(embed_json)
+
+            await channel.send(embed=embed)
+        except Exception as e:
+            print(message.content)
+            print(e)
 
     async def react(self, message):
         try:
             match = re.compile('\$react ([A-Z]+) ([A-Z]+) ([\d]+)').search(message.content)
             channel = self.get_channel(getattr(id.Channel, match[2]))
             await (await channel.fetch_message(match[3])).add_reaction(client.get_emoji(getattr(id.Emoji, match[1])))
-        except:
-            await message.author.send('Format is: $react EMOJI CHANNEL message_id')
-            return
+        except Exception as e:
+            print(message.content)
+            print(e)
 
     async def unreact(self, message):
         try:
             match = re.compile('\$unreact ([A-Z]+) ([A-Z]+) ([\d]+)').search(message.content)
             channel = self.get_channel(getattr(id.Channel, match[2]))
             await (await channel.fetch_message(match[3])).remove_reaction(client.get_emoji(getattr(id.Emoji, match[1])), self.user)
-        except:
-            await message.author.send('Format is: $unreact EMOJI CHANNEL message_id')
-            return
+        except Exception as e:
+            print(message.content)
+            print(e)
 
     async def time_conversion(self, message):
         try:
@@ -149,10 +131,51 @@ class BotClient(discord.Client):
             epoch = datetime.fromisoformat(iso_time).timestamp()
 
             await message.author.send(f"`<t:{int(epoch)}:t>`")
-        except:
-            print("Invalid time")
-            raise
-            return 
+        except Exception as e:
+            print(message.content)
+            print(e)
+
+    async def altspace(self, message):
+        try:
+            page = requests.get("https://account.altvr.com/channels/meditation")
+            soup = BeautifulSoup(page.content, 'html.parser')
+            div = soup.find("div", {"id": "upcoming-events"})
+
+            events = []
+            today = datetime.today().date()
+
+            featured = div.find("a", {"class": "banner"})
+            time = featured.find("div", {"class": "banner__header-item"})
+            if "LIVE!" in time.text:
+                events.append( ("LIVE!", featured.find("div", {"class": "banner__footer"}).text))
+            else:
+                time = featured.find("div", {"class": "banner__header-item time-info-home"})
+                if datetime.fromtimestamp(int(time['data-unix-start-time'])).date() == today:
+                    events.append( (time['data-unix-start-time'], featured.find("div", {"class": "banner__footer"}).text))
+
+            tiles = div.find_all("a", {"class": "tile"})
+            for tile in tiles:
+                time = tile.find("div", {"class": "tile__header-item"})
+                if datetime.fromtimestamp(int(time['data-unix-start-time'])).date() == today:
+                    events.append( (time['data-unix-start-time'], tile.find("div", {"class": "tile__footer"}).text))
+                else:
+                    break
+            
+            if len(events) > 0:
+                embed=discord.Embed(title="Altspace events today", url="https://account.altvr.com/channels/meditation",
+                    color=0x166099)
+                embed.set_author(name="EvolVR", url="https://evolvr.org/", icon_url="https://cdn-content-ingress.altvr.com/uploads/channel/profile_image/983488213811200868/ProfileImageEvolVR.jpg")
+                for event in events:
+                    embed.add_field(name=event[1], value="LIVE!" if event[0] == "LIVE!" else f"<t:{event[0]}:t>", inline=False)
+
+                await message.channel.send(embed=embed)
+            else:
+                time = featured.find("div", {"class": "banner__header-item time-info-home"})['data-unix-start-time']
+                title = featured.find("div", {"class": "banner__footer"}).text
+                await message.channel.send(f"No more events scheduled for today. Next event is <t:{time}:F>: {title}")
+        except Exception as e:
+            print(message.content)
+            print(e)
 
     async def user_rank(self, message):
         try:
