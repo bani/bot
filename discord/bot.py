@@ -32,7 +32,9 @@ class BotClient(discord.Client):
         if isinstance(message.channel, discord.DMChannel):
             if message.author.id == id.User.BANI:
                 if message.content.startswith('$say'):
-                    await self.send(message)
+                    await self.say(message)
+                if message.content.startswith('$del'):
+                    await self.delete(message)
                 if message.content.startswith('$react'):
                     await self.react(message)
                 if message.content.startswith('$unreact'):
@@ -105,7 +107,7 @@ class BotClient(discord.Client):
             title = featured.find("div", {"class": "banner__footer"}).text
             await message.channel.send(f"No more events scheduled for today. Next event is <t:{time}:F>: {title}")
 
-    async def send(self, message):
+    async def say(self, message):
         try:
             match = re.compile('\$say ([A-Z]+) (.*)').search(message.content)
             channel = self.get_channel(getattr(id.Channel, match[1]))
@@ -113,6 +115,12 @@ class BotClient(discord.Client):
         except:
             await message.author.send('Format is: $say CHANNEL message')
             return
+
+    async def delete(self, message):
+        match = re.compile('\$del ([A-Z]+) (.*)').search(message.content)
+        channel = self.get_channel(getattr(id.Channel, match[1]))
+        msg = await channel.fetch_message(int(match[2]))
+        await msg.delete()
 
     async def react(self, message):
         try:
