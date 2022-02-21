@@ -44,7 +44,7 @@ class BotClient(discord.Client):
                 elif message.content.startswith('$word_cloud'):
                     await self.word_cloud(message)
                 elif message.content.startswith('$test'):
-                    msg = await self.get_channel(id.Channel.EVHOME).fetch_message(939176779015417866)
+                    msg = await self.get_channel(id.Channel.TMP).fetch_message(945151773771960410)
                     print(msg.content)
             else:
                 print('DM from {0.author}: {0.content}'.format(message))
@@ -93,13 +93,17 @@ class BotClient(discord.Client):
                 break
         
         if len(events) > 0:
-            embed=discord.Embed(title="Altspace events", url="https://account.altvr.com/channels/meditation",
-                color=0x166099, description="The following events are scheduled for today:")
+            embed=discord.Embed(title="Altspace events today", url="https://account.altvr.com/channels/meditation",
+                color=0x166099)
             embed.set_author(name="EvolVR", url="https://evolvr.org/", icon_url="https://cdn-content-ingress.altvr.com/uploads/channel/profile_image/983488213811200868/ProfileImageEvolVR.jpg")
             for event in events:
-                embed.add_field(name=event[1], value="LIVE!" if event[0] == "LIVE!" else f"<t:{event[0]}:t>", inline=True)
+                embed.add_field(name=event[1], value="LIVE!" if event[0] == "LIVE!" else f"<t:{event[0]}:t>", inline=False)
 
             await message.channel.send(embed=embed)
+        else:
+            time = featured.find("div", {"class": "banner__header-item time-info-home"})['data-unix-start-time']
+            title = featured.find("div", {"class": "banner__footer"}).text
+            await message.channel.send(f"No more events scheduled for today. Next event is <t:{time}:F>: {title}")
 
     async def send(self, message):
         try:
