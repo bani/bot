@@ -3,12 +3,13 @@ import discord
 import csv
 import requests
 import re
-import time
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from bs4 import BeautifulSoup
 from json import loads
 from dotenv import load_dotenv
+from discord.ext import tasks
 import constants as id
+import calendar_parser
 
 class BotClient(discord.Client):
     def __init__(self):
@@ -20,6 +21,9 @@ class BotClient(discord.Client):
         self.mention = re.compile('<@!684503427782672517>')
         self.banibot = re.compile('BaniBot', re.IGNORECASE)
         self.time_re = re.compile('(?P<dt>\d{4}-\d{2}-\d{2})? ?(?P<hh>\d{2})(?P<mm>:\d{2})', re.IGNORECASE)
+
+        self.last_reminder = datetime.now() - timedelta(days=5)
+        self.reminder_task.start()
 
     async def on_ready(self):
         print('Logged on as {0}!'.format(self.user))
@@ -34,6 +38,8 @@ class BotClient(discord.Client):
             if message.author.id == id.User.BANI:
                 if message.content.startswith('$say'):
                     await self.say(message)
+                if message.content.startswith('$emoji'):
+                    await self.emoji(message)
                 if message.content.startswith('$del'):
                     await self.delete(message)
                 if message.content.startswith('$embed'):
@@ -70,6 +76,21 @@ class BotClient(discord.Client):
             # Events
             if message.content == '?altspace':
                 await self.altspace(message)
+            if message.content == '?calendar':
+                await self.calendar(message)
+
+
+    @tasks.loop(minutes=20)
+    async def reminder_task(self):
+        now = datetime.now()
+        if now.day != self.last_reminder.day:
+            self.last_reminder = now
+            channel = self.get_channel(id.Channel.TMP)
+            await channel.send(f'Hello <@!{id.User.BANI}>')
+
+    @reminder_task.before_loop
+    async def reminder_task_wait(self):
+        await self.wait_until_ready() # wait until the bot logs in
 
 
     async def say(self, message):
@@ -77,6 +98,15 @@ class BotClient(discord.Client):
             match = re.compile('\$say ([A-Z]+) (.*)').search(message.content)
             channel = self.get_channel(getattr(id.Channel, match[1]))
             await channel.send(match[2])
+        except Exception as e:
+            print(message.content)
+            print(e)
+
+    async def emoji(self, message):
+        try:
+            match = re.compile('\$emoji ([A-Z]+) (.*)').search(message.content)
+            channel = self.get_channel(getattr(id.Channel, match[1]))
+            await channel.send(f'<a:e:{getattr(id.Emoji, match[2])}>')
         except Exception as e:
             print(message.content)
             print(e)
@@ -173,6 +203,25 @@ class BotClient(discord.Client):
                 time = featured.find("div", {"class": "banner__header-item time-info-home"})['data-unix-start-time']
                 title = featured.find("div", {"class": "banner__footer"}).text
                 await message.channel.send(f"No more events scheduled for today. Next event is <t:{time}:F>: {title}")
+        except Exception as e:
+            print(message.content)
+            print(e)
+
+    async def calendar(self, message):
+        try:
+            events = calendar_parser.get_events()
+
+            if len(events) > 0:
+                embed=discord.Embed(title="Events from EvolVR calendar", url="https://calendar.google.com/calendar/embed?src=c_qc3lsjssl0f2mhrljmptf78430%40group.calendar.google.com&ctz=America%2FToronto&mode=WEEK",
+                    color=0x166099)
+                embed.set_author(name="EvolVR", url="https://evolvr.org/", icon_url="https://cdn-content-ingress.altvr.com/uploads/channel/profile_image/983488213811200868/ProfileImageEvolVR.jpg")
+                for event in events:
+                    embed.add_field(name=event[1], value=f"<t:{event[0]}:t>", inline=False)
+
+                await message.channel.send(embed=embed)
+            else:
+                await message.channel.send(f"No more events scheduled for today.")
+
         except Exception as e:
             print(message.content)
             print(e)
