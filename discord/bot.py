@@ -54,6 +54,8 @@ class BotClient(discord.Client):
                     await self.user_rank(message)
                 elif message.content.startswith('$word_cloud'):
                     await self.word_cloud(message)
+                elif message.content.startswith('$clean'):
+                    await self.clean(message)
                 elif message.content.startswith('$test'):
                     msg = await self.get_channel(id.Channel.TMP).fetch_message(945151773771960410)
                     print(msg.content)
@@ -63,6 +65,7 @@ class BotClient(discord.Client):
         
         # handle channel messages
         if message.channel.id in (id.Channel.TMP, id.Channel.EVHOME):
+
             # BaniBot mentions
             if self.banibot.search(message.content) or (self.mention.search(message.content) and message.content.count('@') == 1):
                 await message.add_reaction(self.get_emoji(id.Emoji.BOT))
@@ -255,6 +258,23 @@ class BotClient(discord.Client):
 
             async for message in channel.history(limit=100):
                 writer.writerow([message.author.name, message.content.replace("\n", " ")])
+
+    async def clean(self, message):
+        try:
+            match = re.compile('\$clean ([A-Z]+)').search(message.content)
+            channel = self.get_channel(getattr(id.Channel, match[1]))
+        except:
+            print("Invalid channel id")
+            return
+
+        def predicate(message):
+            return not message.pinned
+
+        old = datetime.now() - timedelta(30)
+
+        async for message in channel.history(before=old).filter(predicate):
+            await message.delete()
+        print("Done!")
 
 
 load_dotenv()
