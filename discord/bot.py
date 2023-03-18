@@ -3,6 +3,7 @@ import discord
 import csv
 import requests
 import re
+import time
 from datetime import date, datetime, timedelta
 from bs4 import BeautifulSoup
 from json import loads
@@ -274,6 +275,7 @@ class BotClient(discord.Client):
 
         async for message in channel.history(before=old).filter(predicate):
             await message.delete()
+            time.sleep(2)
         print("Done!")
 
 
