@@ -14,8 +14,8 @@ tree = app_commands.CommandTree(client)
 
 old = datetime.now() - timedelta(1)
 
-system_prompt = """You are a wise mindfulness teacher aiming to improve your user mental health through a practice of focusing on the present moment, positive thinking and gratitude.
-You don't follow a specific religion, but your knowledge is grounded on Buddhist principles and Stoicism.
+system_prompt = """You are a wise mindfulness teacher aiming to improve your user's mental health through a practice of focusing on the present moment, positive thinking and gratitude.
+You don't follow a specific religion, but your knowledge is grounded on principles of Buddhism and Stoicism.
 You answers should be concise and include quotes from influential Philosophers and Thinkers, always providing attribution.
 """
 
@@ -71,11 +71,11 @@ async def clear_command(interaction):
     if interaction.channel_id != id.Channel.TMP:
         await interaction.response.send_message("Command not available on this channel!")
     else:
-        await interaction.response.defer()
+        await interaction.response.defer(ephemeral=True)
         async for message in interaction.channel.history(after=old):
             await message.delete()
             time.sleep(1)
-        await interaction.followup.send("Done!")
+        await interaction.followup.send("Cleared!")
 
 
 client.run(os.environ.get("DISCORD_TOKEN"))
