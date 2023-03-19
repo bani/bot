@@ -6,10 +6,10 @@ from icalendar import Calendar
 
 
 localtz = tz.timezone('America/Toronto')
-now = localtz.localize(datetime.now())
 calendar_url = 'https://calendar.google.com/calendar/ical/mmi03hniu9rl24ej5thlb0o2stimvtq3%40import.calendar.google.com/public/basic.ics'
 
 def cal_recurrences(recur_rule, start, exclusions):
+    now = localtz.localize(datetime.now())
     rules = rruleset()
     first_rule = rrulestr(recur_rule, dtstart=start)
     rules.rrule(first_rule)
@@ -26,6 +26,7 @@ def cal_recurrences(recur_rule, start, exclusions):
     return dates
 
 def get_events():
+    now = localtz.localize(datetime.now())
     events = []
     ical = requests.get(calendar_url)
     evcal = Calendar.from_ical(ical.content)
@@ -40,7 +41,7 @@ def get_events():
                 for item in cal_recurrences(reoccur, startdt, exdate):
                     events.append((int(item), str(summary)))
             else:
-                if startdt > now and startdt < now.replace(hour=23, minute=59, second=59):
+                if startdt > now.replace(hour=0, minute=0, second=0) and startdt < now.replace(hour=23, minute=59, second=59):
                     events.append(
                         (int(startdt.astimezone(localtz).timestamp()),
                          str(location),
@@ -49,6 +50,7 @@ def get_events():
     return sorted(events, key=lambda tup: tup[0])
 
 def get_nonrecurring():
+    now = localtz.localize(datetime.now())
     events = []
     ical = requests.get(calendar_url)
     evcal = Calendar.from_ical(ical.content)
@@ -61,8 +63,3 @@ def get_nonrecurring():
                     events.append((int(startdt.astimezone(localtz).timestamp()), str(summary)))
     
     return sorted(events, key=lambda tup: tup[0])
-
-
-events = get_events()
-for e in events:
-    print(f"<t:{e[0]}:t>: {e[2]} ({e[1]})")
