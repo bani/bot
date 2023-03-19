@@ -280,6 +280,6 @@ class BotClient(discord.Client):
 
 
 load_dotenv()
-token = os.environ.get("DISCORD_TOKEN")
+token = os.environ.get("BANIBOT")
 client = BotClient()
 client.run(token)
