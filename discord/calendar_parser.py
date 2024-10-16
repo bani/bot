@@ -1,15 +1,14 @@
 import requests
-from datetime import datetime
+from datetime import datetime, timedelta
 from dateutil.rrule import *
 import pytz as tz
 from icalendar import Calendar
 
 
 localtz = tz.timezone('America/Toronto')
-calendar_url = 'https://calendar.google.com/calendar/ical/mmi03hniu9rl24ej5thlb0o2stimvtq3%40import.calendar.google.com/public/basic.ics'
 
-def cal_recurrences(recur_rule, start, exclusions):
-    now = localtz.localize(datetime.now())
+def cal_recurrences(recur_rule, start, exclusions, offset=0):
+    now = localtz.localize(datetime.now()) + timedelta(days=offset)
     rules = rruleset()
     first_rule = rrulestr(recur_rule, dtstart=start)
     rules.rrule(first_rule)
@@ -21,12 +20,12 @@ def cal_recurrences(recur_rule, start, exclusions):
             except AttributeError:
                 pass
     dates = []
-    for rule in rules.between(now, now.replace(hour=23, minute=59, second=59)):
+    for rule in rules.between(now.replace(hour=0, minute=0, second=0), now.replace(hour=23, minute=59, second=59)):
         dates.append(rule.timestamp())
     return dates
 
-def get_events():
-    now = localtz.localize(datetime.now())
+def get_events(calendar_url, offset=0):
+    now = localtz.localize(datetime.now()) + timedelta(days=offset)
     events = []
     ical = requests.get(calendar_url)
     evcal = Calendar.from_ical(ical.content)
@@ -35,31 +34,15 @@ def get_events():
             summary = component.get('summary')
             startdt = component.get('dtstart').dt
             exdate = component.get('exdate')
-            location = component.get('location')
+            # location = component.get('location')
             if component.get('rrule'):
                 reoccur = component.get('rrule').to_ical().decode('utf-8')
-                for item in cal_recurrences(reoccur, startdt, exdate):
+                for item in cal_recurrences(reoccur, startdt, exdate, offset):
                     events.append((int(item), str(summary)))
             else:
                 if startdt > now.replace(hour=0, minute=0, second=0) and startdt < now.replace(hour=23, minute=59, second=59):
                     events.append(
                         (int(startdt.astimezone(localtz).timestamp()),
-                         str(location),
                          str(summary)))
     
-    return sorted(events, key=lambda tup: tup[0])
-
-def get_nonrecurring():
-    now = localtz.localize(datetime.now())
-    events = []
-    ical = requests.get(calendar_url)
-    evcal = Calendar.from_ical(ical.content)
-    for component in evcal.walk():
-        if component.name == "VEVENT":
-            summary = component.get('summary')
-            startdt = component.get('dtstart').dt
-            if not component.get('rrule'):
-                if startdt > now and startdt < now.replace(month=now.month+1):
-                    events.append((int(startdt.astimezone(localtz).timestamp()), str(summary)))
-    
-    return sorted(events, key=lambda tup: tup[0])
+    return sorted(events, key=lambda tup: tup[0]), (localtz.localize(datetime.now()) + timedelta(days=offset)).strftime('%A, %B %d')
