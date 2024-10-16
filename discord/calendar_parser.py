@@ -4,7 +4,6 @@ from dateutil.rrule import *
 import pytz as tz
 from icalendar import Calendar
 
-
 localtz = tz.timezone('America/Toronto')
 
 def cal_recurrences(recur_rule, start, exclusions, offset=0):
@@ -34,15 +33,16 @@ def get_events(calendar_url, offset=0):
             summary = component.get('summary')
             startdt = component.get('dtstart').dt
             exdate = component.get('exdate')
-            # location = component.get('location')
+            location = component.get('location') or "VRChat"
+
             if component.get('rrule'):
                 reoccur = component.get('rrule').to_ical().decode('utf-8')
-                for item in cal_recurrences(reoccur, startdt, exdate, offset):
-                    events.append((int(item), str(summary)))
+                for timestamp in cal_recurrences(reoccur, startdt, exdate, offset):
+                    events.append((int(timestamp), str(summary), str(location)))
             else:
                 if startdt > now.replace(hour=0, minute=0, second=0) and startdt < now.replace(hour=23, minute=59, second=59):
                     events.append(
                         (int(startdt.astimezone(localtz).timestamp()),
-                         str(summary)))
+                         str(summary), str(location)))
     
     return sorted(events, key=lambda tup: tup[0]), (localtz.localize(datetime.now()) + timedelta(days=offset)).strftime('%A, %B %d')

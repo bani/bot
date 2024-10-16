@@ -38,7 +38,7 @@ async def on_message(message):
         if message.author.id == id.User.BANI:
             if message.content.startswith('$del'):
                 await delete(message)
-    else:
+        else:
             print(f"{message.author.name}: {message.content}")
 
 @tasks.loop(hours=24)
@@ -47,12 +47,17 @@ async def calendar():
     try:
         calendar_url = os.environ.get("CALENDAR_URL")
         events, events_date = calendar_parser.get_events(calendar_url=calendar_url, offset=params['offset'])
+        print(f'Calendar posted for {events_date}')
 
         if len(events) > 0:
-            embed=discord.Embed(color=0xFF7D7D)
-            embed.set_author(name=f"{events_date}", url="", icon_url="https://cdn.discordapp.com/attachments/1291477863811514522/1293693113822478420/F2445A85-BB7E-4357-A488-D0500DB4DEF1.webp?ex=67103619&is=670ee499&hm=4a5486baa19226e0f147416327010bebd00acb919f488af85477fb0e794e618b&")
+            embed=discord.Embed(color=0xFF7D7D, title=events_date)
+            # embed.set_thumbnail(url="https://cdn.discordapp.com/attachments/1291477863811514522/1293693113822478420/F2445A85-BB7E-4357-A488-D0500DB4DEF1.webp?ex=67118799&is=67103619&hm=0280afebfca04438e0025ab168d7c6a706ddc5d9e8fd4d47730a9eed6d0e54a2&")
+            # embed.set_author(name=f"{events_date}", url="", icon_url="https://cdn.discordapp.com/attachments/1291477863811514522/1293693113822478420/F2445A85-BB7E-4357-A488-D0500DB4DEF1.webp?ex=67118799&is=67103619&hm=0280afebfca04438e0025ab168d7c6a706ddc5d9e8fd4d47730a9eed6d0e54a2&")
             for event in events:
-                embed.add_field(name="\u200B\n"+event[1], value=f"Time: <t:{event[0]}:t>", inline=False)
+                ts, title, location = event
+                # embed.add_field(name="\u200B\n"+title, value=f"{location} at <t:{ts}:t>", inline=False)
+                embed.add_field(name="\u200B\n", value=f"<t:{ts}:t> in {location}", inline=False)
+                embed.add_field(name=title, value="", inline=False)
 
             await client.get_channel(params['channel']).send(embed=embed)
         else:
