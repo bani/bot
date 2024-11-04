@@ -45,4 +45,4 @@ def get_events(calendar_url, offset=0):
                         (int(startdt.astimezone(localtz).timestamp()),
                          str(summary), str(location)))
     
-    return sorted(events, key=lambda tup: tup[0]), (localtz.localize(datetime.now()) + timedelta(days=offset)).strftime('%A, %B %d')
+    return sorted(events, key=lambda tup: tup[0]), localtz.localize(datetime.now()) + timedelta(days=offset)
