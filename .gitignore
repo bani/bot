@@ -1,5 +1,6 @@
 *.csv
 *.ipynb
+.DS_Store
 bot/
 points.py
 
