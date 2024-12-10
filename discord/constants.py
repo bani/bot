@@ -3,6 +3,7 @@ class User():
 
 class Server():
     BANIVERSE = 684502050255667230
+    MINDFULNESS = 1291477862981046345
 
 class Channel():
     TMP = 745439018002415626
