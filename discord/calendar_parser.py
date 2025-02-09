@@ -29,15 +29,18 @@ def cal_recurrences(recur_rule, start, exclusions, offset=0):
                     exclusion_dates.append(ex_dt)
     
     # Add exclusion dates to the rule set
+    dates_ex = []
     for ex_date in exclusion_dates:
         rules.exdate(ex_date)
+        dates_ex.append(ex_date.date())
     
     dates = []
     day_start = now.replace(hour=0, minute=0, second=0)
     day_end = now.replace(hour=23, minute=59, second=59)
     
     for rule in rules.between(day_start, day_end):
-        dates.append(rule.timestamp())
+        if rule.date() not in (dates_ex):
+            dates.append(rule.timestamp())
     
     return dates
 
