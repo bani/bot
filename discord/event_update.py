@@ -1,50 +1,55 @@
-import os
-import re
+"""Post a one-off announcement embed to a channel, then exit.
+
+Defaults are safe for testing (NOTBANI bot, TMP channel). To post the real
+announcement:
+    python event_update.py --channel ALTCAL
+"""
+
+import argparse
+import logging
+
 import discord
-import traceback
-from dotenv import load_dotenv
-import constants as id
 
-intents = discord.Intents.default()
-intents.message_content = True
-client = discord.Client(intents=intents)
+import bot_common
+from constants import Channel
 
-msg_asoka = "The Artificial Buddha with <#1469030252402708654> has concluded. New events coming in June."
+log = logging.getLogger("bot.event_update")
 
-params = {
-    'bot': 'CALENDAR', # 'CALENDAR'
-    'channel': id.Channel.ALTCAL, #ALTCAL
-    'message': msg_asoka
-}
+DEFAULT_MESSAGE = ("The Artificial Buddha with <#1469030252402708654> has concluded. "
+                   "New events coming in June.")
 
-@client.event
-async def on_ready():
-    print("Logged in as {0.user}".format(client))
-    await message()
 
-@client.event
-async def on_message(message):
-    if message.author == client.user:
-        return
-    
-    # handle DMs
-    if isinstance(message.channel, discord.DMChannel):
-        print(f"{message.author.name}: {message.content}")
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("--bot", default="NOTBANI",
+                        help="env var holding the bot token (default: %(default)s)")
+    parser.add_argument("--channel", default="TMP",
+                        help="constants.Channel name to post to (default: %(default)s)")
+    parser.add_argument("--message", default=DEFAULT_MESSAGE,
+                        help="announcement text (default: the message in this script)")
+    return parser.parse_args()
 
-async def message():
-    try:
 
-        embed=discord.Embed(color=0xFFC107, title="")
-        # embed.set_thumbnail(url="https://www.emoji.family/api/emojis/1f514/noto/png/128")
-        embed.set_author(name=f"Event Update", url="", icon_url="https://www.emoji.family/api/emojis/1f514/noto/png/128")
-        embed.add_field(name="", value=f"{params['message']}", inline=False)
+def main():
+    args = parse_args()
+    client = bot_common.make_client()
+    channel_id = bot_common.constant(Channel, args.channel)
 
-        await client.get_channel(params['channel']).send(embed=embed)
+    async def send_update():
+        channel = client.get_channel(channel_id)
+        if channel is None:
+            raise RuntimeError(f"Channel {args.channel} not found "
+                               "(is this bot in that server?)")
+        embed = discord.Embed(color=0xFFC107, title="")
+        embed.set_author(name="Event Update", url="",
+                         icon_url="https://www.emoji.family/api/emojis/1f514/noto/png/128")
+        embed.add_field(name="", value=args.message, inline=False)
+        await channel.send(embed=embed)
+        log.info("Posted update to %s", args.channel)
 
-        print("Done")
+    bot_common.run_once(client, args.bot, send_update)
 
-    except Exception as e:
-        print(traceback.format_exc())
 
-load_dotenv()
-client.run(os.environ.get(params['bot']))
+if __name__ == "__main__":
+    main()

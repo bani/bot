@@ -1,82 +1,135 @@
-import os
-import discord
-import re
-import traceback
+"""Post the day's calendar events to a Discord channel on a daily loop.
+
+Testing (defaults: NOTBANI bot, TMP channel, posts immediately on startup
+and then every 24h):
+    python schedule_post.py --post
+
+Production (posts daily at 10am Eastern; DST is handled automatically):
+    python schedule_post.py --post --at 10:00 --bot CALENDAR --channel ALTCAL
+
+Without --post the bot only logs in and handles `$del CHANNEL message_id`
+DMs from Bani.
+"""
+
+import argparse
 import datetime
-import pytz as tz
-from dotenv import load_dotenv
+import logging
+import os
+import re
+from zoneinfo import ZoneInfo
+
+import discord
 from discord.ext import tasks
-import constants as id
+
+import bot_common
 import calendar_parser
+from constants import Channel, User
+
+log = logging.getLogger("bot.schedule_post")
+
+DELETE_RE = re.compile(r'\$del ([A-Z]+) (.*)')
 
 
-intents = discord.Intents.default()
-intents.message_content = True
-client = discord.Client(intents=intents)
-# time = datetime.time(hour=12, minute=0) #UTC
-params = {
-    'post': False, # UPDATE TO POST
-    'channel': id.Channel.TMP,
-    'offset': 0,
-    'calendar': "CALENDAR_URL"
-}
+EASTERN = ZoneInfo("America/Toronto")
 
-@client.event
-async def on_ready():
-    print("Logged in as {0.user}".format(client))
-    if not calendar.is_running():
-        if params['post']:
-            calendar.start()
 
-@client.event
-async def on_message(message):
-    if message.author == client.user:
-        return
-    
-    # handle DMs
-    if isinstance(message.channel, discord.DMChannel):
-        if message.author.id == id.User.BANI:
-            if message.content.startswith('$del'):
-                await delete(message)
-        else:
-            print(f"{message.author.name}: {message.content}")
-
-@tasks.loop(hours=24)
-# @tasks.loop(time=time)
-async def calendar():
+def eastern_time(value):
+    """Parse 'HH:MM' into an Eastern-time datetime.time, for argparse."""
     try:
-        calendar_url = os.environ.get(params['calendar'])
-        events, events_date = calendar_parser.get_events(calendar_url=calendar_url, offset=params['offset'])
+        hour, minute = (int(part) for part in value.split(":"))
+        return datetime.time(hour=hour, minute=minute, tzinfo=EASTERN)
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"expected HH:MM, got {value!r}")
 
-        thumbnail = f"http://baniverso.com/images/bot/wd{events_date.weekday()}.jpeg"
 
-        if len(events) > 0:
-            embed=discord.Embed(color=0xFF7D7D, title=events_date.strftime('%B %-d'))
-            embed.set_thumbnail(url=thumbnail)
-            # embed.set_author(name=f"{events_date}", url="", icon_url="https://cdn.discordapp.com/attachments/1291477863811514522/1293693113822478420/F2445A85-BB7E-4357-A488-D0500DB4DEF1.webp?ex=67118799&is=67103619&hm=0280afebfca04438e0025ab168d7c6a706ddc5d9e8fd4d47730a9eed6d0e54a2&")
-            for event in events:
-                ts, title, location = event
-                embed.add_field(name="\u200B\n"+title, value=f"<t:{ts}:t> in {location}", inline=False)
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("--bot", default="NOTBANI",
+                        help="env var holding the bot token (default: %(default)s)")
+    parser.add_argument("--channel", default="TMP",
+                        help="constants.Channel name to post to (default: %(default)s)")
+    parser.add_argument("--offset", type=int, default=0,
+                        help="day offset from today (default: %(default)s)")
+    parser.add_argument("--calendar", default="CALENDAR_URL",
+                        help="env var holding the iCal URL (default: %(default)s)")
+    parser.add_argument("--post", action="store_true",
+                        help="start the daily posting loop")
+    parser.add_argument("--at", type=eastern_time, metavar="HH:MM",
+                        help="post daily at this Eastern time, e.g. 10:00 (production; "
+                             "DST handled automatically); without it, post immediately "
+                             "and then every 24h (testing)")
+    return parser.parse_args()
+
+
+def main():
+    args = parse_args()
+    client = bot_common.make_client()
+    channel_id = bot_common.constant(Channel, args.channel)
+
+    async def post_calendar():
+        try:
+            calendar_url = os.environ.get(args.calendar)
+            if not calendar_url:
+                log.error("No calendar URL named %s in the environment", args.calendar)
+                return
+            events, events_date = calendar_parser.get_events(
+                calendar_url=calendar_url, offset=args.offset)
+
+            channel = client.get_channel(channel_id)
+            if channel is None:
+                log.error("Channel %s not found", args.channel)
+                return
+
+            if events:
+                embed = discord.Embed(color=0xFF7D7D, title=events_date.strftime('%B %-d'))
+                embed.set_thumbnail(
+                    url=f"http://baniverso.com/images/bot/wd{events_date.weekday()}.jpeg")
                 embed.set_footer(text="Location: VRChat\nTimes displayed in your local timezone")
+                for timestamp, title, location in events:
+                    embed.add_field(name="\u200B\n" + title,
+                                    value=f"<t:{timestamp}:t> in {location}", inline=False)
+                await channel.send(embed=embed)
+            else:
+                await channel.send(f"No events found on {events_date}.")
 
-            await client.get_channel(params['channel']).send(embed=embed)
+            log.info("Calendar posted for %s", events_date.strftime('%A, %B %d'))
+        except Exception:
+            log.exception("Failed to post calendar")
+
+    if args.at:
+        calendar_loop = tasks.loop(time=args.at)(post_calendar)
+    else:
+        calendar_loop = tasks.loop(hours=24)(post_calendar)
+
+    @client.event
+    async def on_ready():
+        log.info("Logged in as %s", client.user)
+        if args.post and not calendar_loop.is_running():
+            calendar_loop.start()
+
+    @client.event
+    async def on_message(message):
+        if message.author == client.user or not bot_common.is_dm(message):
+            return
+        if message.author.id == User.BANI:
+            if message.content.startswith('$del'):
+                await delete_message(client, message)
         else:
-            await client.get_channel(params['channel']).send(f"No events found on {events_date}.")
+            bot_common.log_dm(message)
 
-        print(f"Calendar posted for {events_date.strftime('%A, %B %d')}")
+    bot_common.run(client, args.bot)
 
-    except Exception as e:
-        print(traceback.format_exc())
 
-async def delete(message):
+async def delete_message(client, message):
     try:
-        match = re.compile('\$del ([A-Z]+) (.*)').search(message.content)
-        channel = client.get_channel(getattr(id.Channel, match[1]))
+        match = DELETE_RE.search(message.content)
+        channel = client.get_channel(bot_common.constant(Channel, match[1]))
         msg = await channel.fetch_message(int(match[2]))
         await msg.delete()
-    except Exception as e:
-        print(message.content)
-        print(e)
+    except Exception:
+        log.exception("Could not handle %r", message.content)
 
-load_dotenv()
-client.run(os.environ.get("CALENDAR"))
+
+if __name__ == "__main__":
+    main()
