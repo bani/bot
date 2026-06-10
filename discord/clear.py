@@ -1,44 +1,61 @@
-import os
+"""Persistent bot exposing a /clear slash command in BANIVERSE that purges
+the invoking channel's unpinned messages older than a week."""
+
+import argparse
+import asyncio
+import logging
+from datetime import timedelta
+
 import discord
-import time
-from datetime import datetime, timedelta
-from dotenv import load_dotenv
-import constants as id
 from discord import app_commands
+from discord.utils import utcnow
 
-intents = discord.Intents.default()
-intents.message_content = True
-client = discord.Client(intents=intents)
-tree = app_commands.CommandTree(client)
+import bot_common
+from constants import Server
 
-@client.event
-async def on_ready():
-    print("Logged in as {0.user}".format(client))
-    await tree.sync(guild=discord.Object(id=id.Server.BANIVERSE))
-    print("Ready!")
+log = logging.getLogger("bot.clear")
 
-@client.event
-async def on_message(message):
-    if message.author == client.user:
-        return
-    
-    # handle DMs
-    if isinstance(message.channel, discord.DMChannel):
-        if message.author.id != id.User.BANI:
-            print(f"{message.author.name}: {message.content}")
 
-@tree.command(name = "clear", description = "Clear channel's old history", guild=discord.Object(id=id.Server.BANIVERSE))
-async def clear_command(interaction):
-    await interaction.response.defer(ephemeral=True)
+def parse_args():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--bot", default="DISCORD_TOKEN",
+                        help="env var holding the bot token (default: %(default)s)")
+    return parser.parse_args()
 
-    old = datetime.now() - timedelta(7)
 
-    async for message in interaction.channel.history(before=old):
-        if not message.pinned:
-            await message.delete()
-            time.sleep(1)
+def main():
+    args = parse_args()
+    client = bot_common.make_client()
+    tree = app_commands.CommandTree(client)
+    guild = discord.Object(id=Server.BANIVERSE)
 
-    await interaction.followup.send("Cleared!")
+    @client.event
+    async def on_ready():
+        log.info("Logged in as %s", client.user)
+        await tree.sync(guild=guild)
+        log.info("Ready!")
 
-load_dotenv()
-client.run(os.environ.get("DISCORD_TOKEN"))
+    @client.event
+    async def on_message(message):
+        if message.author == client.user:
+            return
+        if bot_common.is_dm(message):
+            bot_common.log_dm(message)
+
+    @tree.command(name="clear", description="Clear channel's old history", guild=guild)
+    async def clear_command(interaction):
+        await interaction.response.defer(ephemeral=True)
+
+        cutoff = utcnow() - timedelta(days=7)
+        async for message in interaction.channel.history(before=cutoff):
+            if not message.pinned:
+                await message.delete()
+                await asyncio.sleep(1)
+
+        await interaction.followup.send("Cleared!")
+
+    bot_common.run(client, args.bot)
+
+
+if __name__ == "__main__":
+    main()

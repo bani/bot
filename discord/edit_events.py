@@ -1,46 +1,77 @@
-import os
+"""List a guild's scheduled events; optionally shift their start times.
+
+By default this is a dry run that only lists the events. To actually shift
+them (e.g. for daylight saving time):
+    python edit_events.py --apply --shift-hours 1 --skip 1436460393546514615
+"""
+
+import argparse
+import logging
+from datetime import timedelta
+
 import discord
 import pytz
-from discord.ext import commands
-from discord.utils import utcnow
-from datetime import timedelta
-from dotenv import load_dotenv
-import constants as id
 
-load_dotenv()
+import bot_common
+from constants import Server
 
-token = os.environ.get("CALENDAR")
-intents = discord.Intents.none()
-intents.guilds = True
-intents.guild_scheduled_events = True
+log = logging.getLogger("bot.edit_events")
 
-utc = pytz.utc
-est = pytz.timezone("US/Eastern")
+EASTERN = pytz.timezone("US/Eastern")
 
-bot = commands.Bot(command_prefix="!", case_insensitive=True, intents=intents)
 
-@bot.event
-async def on_ready():
-    print("Logged in")
-    guild = bot.get_guild(id.Server.MINDFULNESS)
-    events = guild.scheduled_events
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("--bot", default="NOTBANI",
+                        help="env var holding the bot token (default: %(default)s)")
+    parser.add_argument("--guild", default="MINDFULNESS",
+                        help="constants.Server name (default: %(default)s)")
+    parser.add_argument("--shift-hours", type=int, default=1,
+                        help="hours to shift event start times by (default: %(default)s)")
+    parser.add_argument("--skip", type=int, nargs="*", default=[], metavar="EVENT_ID",
+                        help="event ids to leave untouched")
+    parser.add_argument("--apply", action="store_true",
+                        help="actually edit the events (default: list only)")
+    return parser.parse_args()
 
-    for event in events:
-        utc_start_time = event.start_time.replace(tzinfo=utc)
-        est_start_time = utc_start_time.astimezone(est)
-        print(f"- {event.name}: {est_start_time.strftime('%A, %I %p')} (EST) - {event.id}")
 
-    skip = [1436460393546514615]
+def main():
+    args = parse_args()
+    intents = discord.Intents.none()
+    intents.guilds = True
+    intents.guild_scheduled_events = True
+    client = discord.Client(intents=intents)
+    guild_id = bot_common.constant(Server, args.guild)
 
-    # for event in events:
-    #     if event.id not in (skip):
-    #         new_start_time = event.start_time + timedelta(hours=1)
-    #         new_end_time = new_start_time + timedelta(hours=1)
+    async def edit_events():
+        guild = client.get_guild(guild_id)
+        if guild is None:
+            log.error("Guild %s not found", args.guild)
+            return
 
-    #         await event.edit(
-    #             start_time=new_start_time,
-    #             end_time=new_end_time
-    #         )
-    print("Done")
+        for event in guild.scheduled_events:
+            local_start = event.start_time.astimezone(EASTERN)
+            log.info("- %s: %s - %s", event.name,
+                     local_start.strftime('%A, %I %p %Z'), event.id)
 
-bot.run(token)
+        if not args.apply:
+            log.info("Dry run; pass --apply to shift events by %d hour(s).",
+                     args.shift_hours)
+            return
+
+        for event in guild.scheduled_events:
+            if event.id in args.skip:
+                log.info("Skipping %s", event.name)
+                continue
+            new_start_time = event.start_time + timedelta(hours=args.shift_hours)
+            await event.edit(start_time=new_start_time,
+                             end_time=new_start_time + timedelta(hours=1))
+            log.info("Shifted %s to %s", event.name,
+                     new_start_time.astimezone(EASTERN).strftime('%A, %I %p %Z'))
+
+    bot_common.run_once(client, args.bot, edit_events)
+
+
+if __name__ == "__main__":
+    main()
