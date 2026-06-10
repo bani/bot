@@ -9,7 +9,7 @@ import constants as id
 
 load_dotenv()
 
-token = os.environ.get("NOTBANI")
+token = os.environ.get("CALENDAR")
 intents = discord.Intents.none()
 intents.guilds = True
 intents.guild_scheduled_events = True
@@ -22,7 +22,7 @@ bot = commands.Bot(command_prefix="!", case_insensitive=True, intents=intents)
 @bot.event
 async def on_ready():
     print("Logged in")
-    guild = bot.get_guild(id.Server.BANIVERSE)
+    guild = bot.get_guild(id.Server.MINDFULNESS)
     events = guild.scheduled_events
 
     for event in events:
@@ -30,12 +30,7 @@ async def on_ready():
         est_start_time = utc_start_time.astimezone(est)
         print(f"- {event.name}: {est_start_time.strftime('%A, %I %p')} (EST) - {event.id}")
 
-    # skip = [1293345320180125766,
-    #         1301278823232573503,
-    #         1301279070549446790,
-    #         1301279216150511626,
-    #         1301279363358130287,
-    #         1313301203823759400]
+    skip = [1436460393546514615]
 
     # for event in events:
     #     if event.id not in (skip):

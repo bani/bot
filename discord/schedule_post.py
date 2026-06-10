@@ -15,9 +15,10 @@ intents.message_content = True
 client = discord.Client(intents=intents)
 # time = datetime.time(hour=12, minute=0) #UTC
 params = {
-    'post': True,
+    'post': False, # UPDATE TO POST
     'channel': id.Channel.TMP,
-    'offset': 0
+    'offset': 0,
+    'calendar': "CALENDAR_URL"
 }
 
 @client.event
@@ -44,7 +45,7 @@ async def on_message(message):
 # @tasks.loop(time=time)
 async def calendar():
     try:
-        calendar_url = os.environ.get("CALENDAR_URL")
+        calendar_url = os.environ.get(params['calendar'])
         events, events_date = calendar_parser.get_events(calendar_url=calendar_url, offset=params['offset'])
 
         thumbnail = f"http://baniverso.com/images/bot/wd{events_date.weekday()}.jpeg"
@@ -56,7 +57,7 @@ async def calendar():
             for event in events:
                 ts, title, location = event
                 embed.add_field(name="\u200B\n"+title, value=f"<t:{ts}:t> in {location}", inline=False)
-                embed.set_footer(text="* times displayed as local time")
+                embed.set_footer(text="Location: VRChat\nTimes displayed in your local timezone")
 
             await client.get_channel(params['channel']).send(embed=embed)
         else:
@@ -78,4 +79,4 @@ async def delete(message):
         print(e)
 
 load_dotenv()
-client.run(os.environ.get("NOTBANI"))
+client.run(os.environ.get("CALENDAR"))
