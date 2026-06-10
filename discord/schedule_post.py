@@ -82,7 +82,10 @@ def main():
                 return
 
             if events:
-                embed = discord.Embed(color=0xFF7D7D, title=events_date.strftime('%B %-d'))
+                # %-d (unpadded day) is not portable to Windows, so format manually
+                embed = discord.Embed(
+                    color=0xFF7D7D,
+                    title=f"{events_date.strftime('%B')} {events_date.day}")
                 embed.set_thumbnail(
                     url=f"http://baniverso.com/images/bot/wd{events_date.weekday()}.jpeg")
                 embed.set_footer(text="Location: VRChat\nTimes displayed in your local timezone")
