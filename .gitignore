@@ -116,3 +116,4 @@ dist
 .tern-port
 .ipynb_checkpoints/
 .claude/
+env-old-py39/

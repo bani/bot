@@ -1,8 +1,8 @@
-# Versions currently installed in ../env (Python 3.9)
+# Versions currently installed in ../env (Python 3.12)
 discord.py==2.4.0
 icalendar==4.0.9
 openai==1.28.1
 python-dateutil==2.8.2
-python-dotenv==0.19.2
+python-dotenv==1.2.2
 pytz==2022.1
-requests==2.27.1
+requests==2.34.2
