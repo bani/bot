@@ -1,14 +1,34 @@
 """Fetch a single day's events from an iCal feed."""
 
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-import pytz
 import requests
 from dateutil.rrule import rrulestr, rruleset
 from icalendar import Calendar
 
-LOCALTZ = pytz.timezone('America/Toronto')
+LOCALTZ = ZoneInfo('America/Toronto')
 REQUEST_TIMEOUT = 30
+
+
+def _localize(dt):
+    """Return a timezone-aware datetime whose UTC offset follows DST.
+
+    icalendar hands back pytz timezones, which are pinned to the offset in
+    effect on that specific date. dateutil's rrule reuses the series start's
+    tzinfo for every occurrence, so a 9pm series that began in winter (EST)
+    would come out as 10pm once summer time (EDT) starts. zoneinfo picks the
+    right offset for each date, so swap pytz zones for zoneinfo ones.
+    """
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=LOCALTZ)
+    zone = getattr(dt.tzinfo, 'zone', None)  # only pytz zones have .zone
+    if zone:
+        try:
+            return dt.replace(tzinfo=ZoneInfo(zone))
+        except (ZoneInfoNotFoundError, ValueError):
+            pass
+    return dt
 
 
 def _day_bounds(day):
@@ -33,9 +53,7 @@ def _exclusion_dates(exclusions):
             ex_dt = entry.dt
             if not isinstance(ex_dt, datetime):
                 ex_dt = datetime.combine(ex_dt, datetime.min.time())
-            if ex_dt.tzinfo is None:
-                ex_dt = LOCALTZ.localize(ex_dt)
-            dates.append(ex_dt)
+            dates.append(_localize(ex_dt))
     return dates
 
 
@@ -59,7 +77,7 @@ def cal_recurrences(recur_rule, start, exclusions, day_start, day_end):
 def get_events(calendar_url, offset=0):
     """Events on today+offset days, as sorted (timestamp, summary, location)
     tuples, along with the localized datetime of that day."""
-    target_day = LOCALTZ.localize(datetime.now()) + timedelta(days=offset)
+    target_day = datetime.now(LOCALTZ) + timedelta(days=offset)
     day_start, day_end = _day_bounds(target_day)
     events = []
 
@@ -78,9 +96,8 @@ def get_events(calendar_url, offset=0):
         # All-day events come back as plain dates; normalize everything to
         # timezone-aware datetimes.
         if not isinstance(startdt, datetime):
-            startdt = LOCALTZ.localize(datetime.combine(startdt, datetime.min.time()))
-        elif startdt.tzinfo is None:
-            startdt = LOCALTZ.localize(startdt)
+            startdt = datetime.combine(startdt, datetime.min.time())
+        startdt = _localize(startdt)
 
         rrule = component.get('rrule')
         if rrule:
@@ -90,7 +107,7 @@ def get_events(calendar_url, offset=0):
                                              day_start, day_end):
                 events.append((int(timestamp), str(summary), str(location)))
         elif day_start < startdt < day_end:
-            events.append((int(startdt.astimezone(LOCALTZ).timestamp()),
+            events.append((int(startdt.timestamp()),
                            str(summary), str(location)))
 
     return sorted(events, key=lambda event: event[0]), target_day
