@@ -2,7 +2,7 @@
 
 Defaults are safe for testing (NOTBANI bot, TMP channel). To post the real
 announcement:
-    python event_update.py --channel ALTCAL
+    python event_update.py --bot CALENDAR --channel ALTCAL
 """
 
 import argparse
@@ -15,8 +15,7 @@ from constants import Channel
 
 log = logging.getLogger("bot.event_update")
 
-DEFAULT_MESSAGE = ("The Artificial Buddha with <#1469030252402708654> has concluded. "
-                   "New events coming in June.")
+DEFAULT_MESSAGE = ("Meditation with <#1388588569819611196> cancelled today.")
 
 
 def parse_args():
